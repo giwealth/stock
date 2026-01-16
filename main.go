@@ -13,8 +13,9 @@ var (
 	code     string
 	detail   bool
 	filename string
+	files    []string
 
-	currentDay = 4 // 1: 当前
+	currentDay = 2 // 1: 当前
 )
 
 var (
@@ -23,10 +24,22 @@ var (
 )
 
 func main() {
+	// var files = []string{"/mnt/d/new_tdx/vipdoc/sz/lday/sz002957.day"}
+	// for _, file := range files {
+	// 	gp, err := shares.ParseFile(file)
+	// 	if err != nil {
+	// 		continue
+	// 	}
+	// 	// fmt.Println("----1>", gp.Data[len(gp.Data)-currentDay])
+	// 	risk := IsMacdTopMountainRisk(gp)
+	// 	if risk {
+	// 		fmt.Println(gp.Code, gp.Data[len(gp.Data)-currentDay].Date)
+	// 	}
+	// }
+
 	shfiles := list(sh)
 	szfiles := list(sz)
 
-	var files []string
 	for _, v := range shfiles {
 		s := filepath.Base(v)
 		if string(s[0:4]) == "sh60" {
@@ -83,8 +96,6 @@ func main() {
 	wg.Wait()
 }
 
-
-
 func IsMacdTopMountainRisk(stock *shares.Stock) bool {
 	data := stock.Data
 	n := len(data)
@@ -93,45 +104,44 @@ func IsMacdTopMountainRisk(stock *shares.Stock) bool {
 	}
 
 	// 1. 找最近一个已完成的 MACD 顶部山包
-	_, _, _, ok := findLastMacdTopMountain(data)
+	peak, start, end, ok := findLastMacdTopMountain(data)
 	if !ok {
-		// fmt.Println(stock.Code, "false")
 		return false
 	}
 
-	// i := n - currentDay // 当前交易日
+	i := n - currentDay // 当前交易日
 
-	// // 2. 当前 MACD(Hist) > 前一日 MACD(Hist)
-	// if data[i].Hist <= data[i-1].Hist {
-	// 	return false
-	// }
-	
-	// // ❗ 防止强趋势（当前动能不能超过前山包峰值）
-	// if data[i].Hist >= data[peak].Hist {
-	// 	return false
-	// }
+	// 2. 当前 MACD(Hist) > 前一日 MACD(Hist)
+	if data[i].Hist <= data[i-1].Hist {
+		return false
+	}
 
-	// // 3. 当前最高价 > 前一山包内最高价
-	// prevHigh := data[start].High
-	// for j := start; j <= end; j++ {
-	// 	if data[j].High > prevHigh {
-	// 		prevHigh = data[j].High
-	// 	}
-	// }
+	// ❗ 防止强趋势（当前动能不能超过前山包峰值）
+	if data[i].Hist >= data[peak].Hist {
+		return false
+	}
 
-	// if data[i].High <= prevHigh {
-	// 	return false
-	// }
+	// 3. 当前最高价 > 前一山包内最高价
+	prevHigh := data[start].High
+	for j := start; j <= end; j++ {
+		if data[j].High > prevHigh {
+			prevHigh = data[j].High
+		}
+	}
+
+	if data[i].High <= prevHigh {
+		return false
+	}
 
 	// // 4. 当前最高价 > 前一山包内最高价*1.05 假突破过滤（防强趋势）
-	// if data[n-1].High > prevHigh*1.05 {
+	// if data[i].High > prevHigh*1.05 {
 	// 	return false
 	// }
 
-	// // 5. DIF 顶背离增强
-	// if data[n-1].Dif >= data[peak].Dif {
-	// 	return false
-	// }
+	// 5. DIF 顶背离增强
+	if data[i].Dif >= data[peak].Dif {
+		return false
+	}
 
 	return true
 }
@@ -144,28 +154,26 @@ func findLastMacdTopMountain(data []shares.Day) (peak, start, end int, ok bool) 
 	}
 
 	// 从后往前找最近的山包
-	for i := n - 2; i >= 2; i-- {
+	for i := n - currentDay - 1; i >= 2; i-- {
 		if data[i].Hist <= 0 {
+
 			return peak, start, end, false
 		}
 		// 通过(Hist)的递减找到山顶
 		if data[i].Hist < data[i-1].Hist {
-			peak = i
+			peak = i - 1
 		} else {
 			break
 		}
 	}
-
 	if peak == 0 {
 		return peak, start, end, false
 	}
 
 	// 从山顶向左找山包起点（递增开始）
-	// start = peak - 1
-	// start = peak
 	for i := peak; i >= 2; i-- {
 		if data[i].Hist > 0 && data[i-1].Hist < data[i].Hist {
-			start = i
+			start = i - 1
 		} else {
 			break
 		}
@@ -174,8 +182,10 @@ func findLastMacdTopMountain(data []shares.Day) (peak, start, end int, ok bool) 
 		return peak, start, end, false
 	}
 
-	end = n - currentDay
-
+	end = n - currentDay - 1
+	// fmt.Println("----#1>", data[start].Date, data[start].Hist, data[start].Close)
+	// fmt.Println("----#2>", data[peak].Date, data[peak].Hist, data[peak].Close)
+	// fmt.Println("----#3>", data[end].Date, data[end].Hist, data[end].Close)
 	return peak, start, end, true
 }
 

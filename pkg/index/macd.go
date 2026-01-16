@@ -10,10 +10,10 @@ func EMA(prices []float64, n int) []float64 {
 	return ema
 }
 
-// MACD 使用所有的收盘价进行计算  参数6, 30, 9或6, 30, 6  默认值为12, 26, 9, 当前值为10, 20, 8
+// MACD 使用所有的收盘价进行计算  参数6, 30, 9或6, 30, 6  默认值为12, 26, 9
 func MACD(prices []float64) (dif, dea, hist []float64) {
-	ema12 := EMA(prices, 10)
-	ema26 := EMA(prices, 20)
+	ema12 := EMA(prices, 12)
+	ema26 := EMA(prices, 26)
 	dif = make([]float64, len(prices))
 	dea = make([]float64, len(prices))
 	hist = make([]float64, len(prices))
@@ -28,7 +28,7 @@ func MACD(prices []float64) (dif, dea, hist []float64) {
 				dea[i] = 0
 				hist[i] = dif[i]
 			} else {
-				dea[i] = EMA(dif[:i+1], 8)[i]
+				dea[i] = EMA(dif[:i+1], 9)[i]
 				hist[i] = 2 * (dif[i] - dea[i])
 			}
 		}
