@@ -134,7 +134,7 @@ func IsMacdTopMountainRisk(stock *shares.Stock) bool {
 	}
 
 	// // 4. 当前最高价 > 前一山包内最高价*1.05 假突破过滤（防强趋势）
-	// if data[i].High > prevHigh*1.05 {
+	// if data[i].High > prevHigh*1.1 {
 	// 	return false
 	// }
 
